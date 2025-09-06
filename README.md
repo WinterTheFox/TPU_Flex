@@ -6,4 +6,4 @@ The code includes the MANOVA an ANOVA analysis code for each of the variables.
 The complete datasets are in :
 
 A video of the conucted experimet is shown in:
- \url{https://youtu.be/PuYnzHvUt_I}
+ https://youtu.be/PuYnzHvUt_I
