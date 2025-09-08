@@ -3,7 +3,8 @@ This repository includes the code for the paper ``Flexible joints performance as
 The objective is to use multiple datasets to aproximate the behaviour of a flexble joint as a mass-spring-damper using minimum squares.
 The code includes the MANOVA an ANOVA analysis code for each of the variables.
 
-The complete datasets are in :
+The complete datasets are in the following link:
+https://simtk.org/projects/flex-tpu
 
-A video of the conucted experimet is shown in:
+A video of the conducted experimet is shown in:
  https://youtu.be/PuYnzHvUt_I
