@@ -1,0 +1,104 @@
+#The program uses an Xarm force sensor to read the reeaction forces consecuense of a combinational load. 
+#
+# Author: Daniel R <danielzoteck@gmail.com> 
+
+"""
+Description: Realizar el operador de koopman para predecir instancias futuras
+"""
+import numpy as np
+import os
+import sys
+import time
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
+from xarm.wrapper.xarm_api import *  
+from xarm.x3.base import *
+import csv
+
+
+arm = XArmAPI('192.168.1.221')
+# arm.reset(wait=True) 
+time.sleep(1)
+arm.motion_enable(enable=True)
+arm.clean_error()
+arm.set_mode(0)
+arm.set_state(0)
+time.sleep(0.2)
+
+
+## PARAMETROS DEL CONTROL DE ADMITANCIA
+## ESTABLECIENDO PARAMETROS
+
+# El desplazamiento cartesiano guiado manualmente se puede lograr estableciendo rigidez cero 
+K_pos = 0                #  coeficiente de rigidez lineal x/y/z , rango: 0 ~ 2000 (N/m)
+K_ori = 0                  #  coeficiente de rigidez rotacional Rx/Ry/Rz , rango: 0 ~ 20 (Nm/rad)
+
+# Atención: para M y J, un valor más pequeño significa menos esfuerzo para mover el brazo, pero también puede ser menos estable.
+M = float(0.1)            #  masa equivalente x/y/z; rango: 0.02 ~ 1 kg
+J = M * 0.01               #  momento de inercia equivalente Rx/Ry/Rz, rango: 1e-4 ~ 0.01 (Kg*m^2)
+
+B_pos = 0 # formula de amortiguamiento critico         
+B_ori = 0# formula de amortiguamiento critico
+
+c_axis = [1,1,1,0,0,1]      # ejes deseados
+ref_frame = 0               # 0 : eje base , 1 : eje de "tool"
+
+# se utiliza la siguiente funcion modificada desde el codigo fuente
+arm.set_impedance_mbk([M, M, M, J, J, J], [K_pos, K_pos, K_pos, K_ori, K_ori, K_ori], [B_pos, B_pos, B_pos, B_ori, B_ori, B_ori]) 
+# estableciendo el marco de referencia y los ejes deseados a actuar por el control 
+arm.set_impedance_config(ref_frame, c_axis)
+
+# habilitando el sensor de fuerza
+arm.ft_sensor_enable(1)
+# se sobrescribirá la configuración anterior de cero del sensor y la carga útil
+arm.ft_sensor_set_zero()    # se puede eliminar esto si el desplazamiento cero y la carga útil ya han sido identificados y compensados.
+time.sleep(0.2)             # espere a que la operación de escritura cero surta efecto
+######################################################################################################
+
+arm.ft_sensor_app_set(1)    #1: Estableciendo el control de admitancia
+# set mode: cartesian online trajectory planning mode
+# the running command will be interrupted when the next command is received
+arm.set_mode(7)
+arm.set_state(0)            # comenzará después de set_state(0)
+######################################################################################################
+print('LISTO')
+time.sleep(1)
+print('3')
+time.sleep(1)
+print('2')
+time.sleep(1)
+print('1')
+time.sleep(1)
+
+k = 0
+duracion  = 0
+## GUARDAR EN CSV ##    
+archivo_csv = "daniel_xarm.csv"
+
+try:
+    with open(archivo_csv, 'w', newline='') as file:
+        writer = csv.writer(file)
+        while True:
+            k +=1
+            # Tiempo de inicio
+            inicio = time.time()
+
+            new_pos = arm.position
+            code, ext_force = arm.get_ft_sensor_data()
+
+
+
+            ###################################
+            # Guardando en un CSV
+            lista = [k, new_pos[0], new_pos[1], new_pos[2], new_pos[3], new_pos[4], new_pos[5], ext_force[0], ext_force[1], ext_force[2], ext_force[3], ext_force[4], ext_force[5], duracion]
+            writer.writerow(lista) 
+            ###################################
+            # Tiempo de finalización
+            fin = time.time()
+
+            # Calcula la duración
+            duracion = fin - inicio
+            # print(f"La sección de código tardó {duracion} segundos en ejecutarse.")
+            time.sleep(0.001)
+
+
+except KeyboardInterrupt:
